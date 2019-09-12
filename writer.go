@@ -220,7 +220,7 @@ func (p *MasterPlaylist) Encode() *bytes.Buffer {
 			}
 			if pl.FrameRate != 0.0 {
 				p.buf.WriteString(",FRAME-RATE=")
-				p.buf.WriteString(strconv.FormatFloat(pl.FrameRate, 'f', 3, 64))
+				p.buf.WriteString(strconv.FormatFloat(float64(pl.FrameRate), 'f', 3, 64))
 			}
 			p.buf.WriteRune('\n')
 			p.buf.WriteString(pl.URI)

@@ -302,9 +302,12 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 			case "NAME":
 				state.variant.Name = v
 			case "FRAME-RATE":
-				if state.variant.FrameRate, err = strconv.ParseFloat(v, 64); strict && err != nil {
+				var val float64
+				val, err := strconv.ParseFloat(v, 64)
+				if strict && err != nil {
 					return err
 				}
+				state.variant.FrameRate = float64(val)
 			}
 		}
 	case state.tagStreamInf && !strings.HasPrefix(line, "#"):
