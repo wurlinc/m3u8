@@ -302,7 +302,6 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 			case "NAME":
 				state.variant.Name = v
 			case "FRAME-RATE":
-				var val float64
 				val, err := strconv.ParseFloat(v, 64)
 				if strict && err != nil {
 					return err
