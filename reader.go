@@ -440,9 +440,8 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 
 		// Add WURL extension if there is
 		if state.tagWurl {
-			if state.overlay != nil {
-				p.Segments[p.last()].OverlayInfo = *state.overlay
-				//state.hasOverlay = false
+			if len(state.overlays) != 0 {
+				p.Segments[p.last()].OverlayInfoList = state.overlays
 			}
 			state.tagWurl = false
 		}
@@ -689,21 +688,24 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 		if err == nil {
 			state.tagWV = true
 		}
-		// Wurl Overlay Extension Parsing
+	// Wurl Overlay Extension Parsing
 	case strings.HasPrefix(line, "#EXT-X-WURL-OVERLAY:"):
 		state.tagWurl = true
-		OverlayString := line[len("#EXT-X-WURL-OVERLAY:"):]
-		//p.Segments[p.count].OverlayInfo.Map = make(map[string]string)
-		state.overlay = new(WurlOverlayInfo)
-		state.overlay.Map = make(map[string]string)
 
-		Vals := strings.Split(OverlayString, ",")
-		for _, equation := range Vals {
-			Parts := strings.Split(equation, "=")
-			if len(Parts) == 2 {
-				//p.Segments[p.count].OverlayInfo.Map[strings.TrimSpace(Parts[0])] = strings.TrimSpace(Parts[1])
-				state.overlay.Map[strings.TrimSpace(Parts[0])] = strings.TrimSpace(Parts[1])
+		ovls := strings.Split(line[len("#EXT-X-WURL-OVERLAY:"):], ":::")
+		state.overlays = make([]WurlOverlayInfo, len(ovls))
+		var idx int = 0
+
+		for _, ov := range ovls {
+			state.overlays[idx].Map = make(map[string]string)
+			Vals := strings.Split(ov, ",")
+			for _, equation := range Vals {
+				Parts := strings.Split(equation, "=")
+				if len(Parts) == 2 {
+					state.overlays[idx].Map[strings.TrimSpace(Parts[0])] = strings.TrimSpace(Parts[1])
+				}
 			}
+			idx++
 		}
 
 	case strings.HasPrefix(line, "#"): // unknown tags treated as comments

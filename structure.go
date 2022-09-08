@@ -202,7 +202,7 @@ type MediaSegment struct {
 	SCTE            *SCTE     // SCTE-35 used for Ad signaling in HLS
 	ProgramDateTime time.Time // EXT-X-PROGRAM-DATE-TIME tag associates the first sample of a media segment with an absolute date and/or time
 	// WURL extensions
-	OverlayInfo WurlOverlayInfo
+	OverlayInfoList []WurlOverlayInfo
 }
 
 // WURL specific overlay information
@@ -298,5 +298,5 @@ type decodingState struct {
 	xkey               *Key
 	xmap               *Map
 	scte               *SCTE
-	overlay            *WurlOverlayInfo
+	overlays           []WurlOverlayInfo
 }
