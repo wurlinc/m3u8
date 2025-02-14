@@ -526,6 +526,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString("#EXT-OATCLS-SCTE35:")
 					p.buf.WriteString(seg.SCTE.Cue)
 					p.buf.WriteRune('\n')
+
 					if seg.SCTE.Genre != "" {
 						p.buf.WriteString(seg.SCTE.Genre)
 						p.buf.WriteRune('\n')
@@ -545,6 +546,36 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 				case SCTE35Cue_End:
 					p.buf.WriteString("#EXT-X-CUE-IN")
 					p.buf.WriteRune('\n')
+				}
+			case SCTE35_SPLICE_POINT:
+				switch seg.SCTE.CueType {
+				case SCTE35Cue_Start:
+					p.buf.WriteString(seg.SCTE.SplicePointPayload)
+					p.buf.WriteRune('\n')
+
+					if seg.SCTE.Genre != "" {
+						p.buf.WriteString(seg.SCTE.Genre)
+						p.buf.WriteRune('\n')
+					}
+
+					p.buf.WriteString("#EXT-X-CUE-OUT:")
+					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteRune('\n')
+				case SCTE35Cue_Mid:
+					p.buf.WriteString("#EXT-X-CUE-OUT-CONT:")
+					p.buf.WriteString("ElapsedTime=")
+					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Elapsed, 'f', -1, 64))
+					p.buf.WriteString(",Duration=")
+					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteString(",SCTE35=")
+					p.buf.WriteString(seg.SCTE.Cue)
+					p.buf.WriteRune('\n')
+				case SCTE35Cue_End:
+					p.buf.WriteString("#EXT-X-CUE-IN")
+					p.buf.WriteRune('\n')
+					p.buf.WriteString(seg.SCTE.SplicePointPayload)
+					p.buf.WriteRune('\n')
+
 				}
 			}
 		}
