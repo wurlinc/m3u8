@@ -405,6 +405,12 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 				return err
 			}
 		}
+		if state.tagTransmitLive {
+			state.tagTransmitLive = false
+			if err = p.SetTransmitLive(state.transmitLive); strict && err != nil {
+				return err
+			}
+		}
 		if state.tagDiscontinuity {
 			state.tagDiscontinuity = false
 			if err = p.SetDiscontinuity(); strict && err != nil {
@@ -598,6 +604,20 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 	case state.tagSCTE35 && strings.Contains(line, "#EXT-X-SPLICEPOINT-SCTE35:"):
 		state.scte.Syntax = SCTE35_SPLICE_POINT
 		state.scte.SplicePointPayload = line
+	case !state.tagTransmitLive && strings.Contains(line, "#EXT-X-TRANSMIT-CUE-OUT:"):
+		state.tagTransmitLive = true
+		state.transmitLive = new(TransmitLive)
+		state.transmitLive.CueType = TransmitLiveCue_Start
+		for k, v := range decodeParamsLine(line[19:]) {
+			switch k {
+			case "AdFormat":
+				state.transmitLive.Format = v
+			case "MaxDuration":
+				state.transmitLive.MaxDurationSecond, _ = strconv.ParseFloat(v, 64)
+			case "offset":
+				state.transmitLive.StartOffsetSecond, _ = strconv.ParseFloat(v, 64)
+			}
+		}
 	case !state.tagDiscontinuity && strings.HasPrefix(line, "#EXT-X-DISCONTINUITY") && len(line) == 20:
 		state.tagDiscontinuity = true
 		state.listType = MEDIA

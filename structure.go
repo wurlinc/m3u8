@@ -74,6 +74,13 @@ const (
 	SCTE35Cue_End                        // SCTE35Cue_End indicates an in cue point
 )
 
+type TransmitLiveCueType uint
+
+const (
+	TransmitLiveCue_Start TransmitLiveCueType = iota // TransmitLiveCue_Start indicates an out cue point
+	TransmitLiveCue_End                              // TransmitLiveCue_End indicates an in cue point, apparently optional
+)
+
 /*
 This structure represents a single bitrate playlist aka media playlist.
 It related to both a simple media playlists and a sliding window media playlists.
@@ -204,6 +211,14 @@ type MediaSegment struct {
 	ProgramDateTime time.Time // EXT-X-PROGRAM-DATE-TIME tag associates the first sample of a media segment with an absolute date and/or time
 	// WURL extensions
 	OverlayInfoList []WurlOverlayInfo
+	TransmitLive    *TransmitLive
+}
+
+type TransmitLive struct {
+	CueType           TransmitLiveCueType
+	Format            string
+	StartOffsetSecond float64
+	MaxDurationSecond float64
 }
 
 // WURL specific overlay information
@@ -285,6 +300,7 @@ type decodingState struct {
 	tagStreamInf       bool
 	tagInf             bool
 	tagSCTE35          bool
+	tagTransmitLive    bool
 	tagRange           bool
 	tagDiscontinuity   bool
 	tagProgramDateTime bool
@@ -302,4 +318,5 @@ type decodingState struct {
 	xmap               *Map
 	scte               *SCTE
 	overlays           []WurlOverlayInfo
+	transmitLive       *TransmitLive
 }

@@ -579,6 +579,21 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 				}
 			}
 		}
+		if seg.TransmitLive != nil {
+			switch seg.TransmitLive.CueType {
+			case TransmitLiveCue_Start:
+				p.buf.WriteString("#EXT-X-TRANSMIT-CUE-OUT:AdFormat=")
+				p.buf.WriteString(seg.TransmitLive.Format)
+				p.buf.WriteString(",MaxDuration=")
+				p.buf.WriteString(strconv.FormatFloat(seg.TransmitLive.MaxDurationSecond, 'f', -1, 64))
+				p.buf.WriteString(",offset=")
+				p.buf.WriteString(strconv.FormatFloat(seg.TransmitLive.StartOffsetSecond, 'f', -1, 64))
+				p.buf.WriteRune('\n')
+			case TransmitLiveCue_End:
+				//DO nothing for now, this is optional
+			}
+		}
+
 		// check for key change
 		if seg.Key != nil && p.Key != seg.Key {
 			p.buf.WriteString("#EXT-X-KEY:")
@@ -772,6 +787,15 @@ func (p *MediaPlaylist) SetSCTE35(scte35 *SCTE) error {
 		return errors.New("playlist is empty")
 	}
 	p.Segments[p.last()].SCTE = scte35
+	return nil
+}
+
+// SetTransmitLive sets the Transmit Live cue format for the current media segment
+func (p *MediaPlaylist) SetTransmitLive(transmitLive *TransmitLive) error {
+	if p.count == 0 {
+		return errors.New("playlist is empty")
+	}
+	p.Segments[p.last()].TransmitLive = transmitLive
 	return nil
 }
 
