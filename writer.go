@@ -526,6 +526,7 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString("#EXT-OATCLS-SCTE35:")
 					p.buf.WriteString(seg.SCTE.Cue)
 					p.buf.WriteRune('\n')
+
 					if seg.SCTE.Genre != "" {
 						p.buf.WriteString(seg.SCTE.Genre)
 						p.buf.WriteRune('\n')
@@ -546,8 +547,53 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 					p.buf.WriteString("#EXT-X-CUE-IN")
 					p.buf.WriteRune('\n')
 				}
+			case SCTE35_SPLICE_POINT:
+				switch seg.SCTE.CueType {
+				case SCTE35Cue_Start:
+					p.buf.WriteString(seg.SCTE.SplicePointPayload)
+					p.buf.WriteRune('\n')
+
+					if seg.SCTE.Genre != "" {
+						p.buf.WriteString(seg.SCTE.Genre)
+						p.buf.WriteRune('\n')
+					}
+
+					p.buf.WriteString("#EXT-X-CUE-OUT:")
+					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteRune('\n')
+				case SCTE35Cue_Mid:
+					p.buf.WriteString("#EXT-X-CUE-OUT-CONT:")
+					p.buf.WriteString("ElapsedTime=")
+					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Elapsed, 'f', -1, 64))
+					p.buf.WriteString(",Duration=")
+					p.buf.WriteString(strconv.FormatFloat(seg.SCTE.Time, 'f', -1, 64))
+					p.buf.WriteString(",SCTE35=")
+					p.buf.WriteString(seg.SCTE.Cue)
+					p.buf.WriteRune('\n')
+				case SCTE35Cue_End:
+					p.buf.WriteString("#EXT-X-CUE-IN")
+					p.buf.WriteRune('\n')
+					p.buf.WriteString(seg.SCTE.SplicePointPayload)
+					p.buf.WriteRune('\n')
+
+				}
 			}
 		}
+		if seg.TransmitLive != nil {
+			switch seg.TransmitLive.CueType {
+			case TransmitLiveCue_Start:
+				p.buf.WriteString("#EXT-X-TRANSMIT-CUE-OUT:AdFormat=")
+				p.buf.WriteString(seg.TransmitLive.Format)
+				p.buf.WriteString(",MaxDuration=")
+				p.buf.WriteString(fmt.Sprintf("%.2f", seg.TransmitLive.MaxDurationSecond))
+				p.buf.WriteString(",offset=")
+				p.buf.WriteString(fmt.Sprintf("%.2f", seg.TransmitLive.StartOffsetSecond))
+				p.buf.WriteRune('\n')
+			case TransmitLiveCue_End:
+				//DO nothing for now, this is optional
+			}
+		}
+
 		// check for key change
 		if seg.Key != nil && p.Key != seg.Key {
 			p.buf.WriteString("#EXT-X-KEY:")
@@ -741,6 +787,15 @@ func (p *MediaPlaylist) SetSCTE35(scte35 *SCTE) error {
 		return errors.New("playlist is empty")
 	}
 	p.Segments[p.last()].SCTE = scte35
+	return nil
+}
+
+// SetTransmitLive sets the Transmit Live cue format for the current media segment
+func (p *MediaPlaylist) SetTransmitLive(transmitLive *TransmitLive) error {
+	if p.count == 0 {
+		return errors.New("playlist is empty")
+	}
+	p.Segments[p.last()].TransmitLive = transmitLive
 	return nil
 }
 

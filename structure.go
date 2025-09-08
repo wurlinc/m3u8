@@ -61,6 +61,7 @@ const (
 	// SCTE35_67_2014 will be the default due to backwards compatibility reasons.
 	SCTE35_67_2014 SCTE35Syntax = iota // SCTE35_67_2014 defined in http://www.scte.org/documents/pdf/standards/SCTE%2067%202014.pdf
 	SCTE35_OATCLS                      // SCTE35_OATCLS is a non-standard but common format
+	SCTE35_SPLICE_POINT
 )
 
 // SCTE35CueType defines the type of cue point, used by readers and writers to
@@ -73,33 +74,40 @@ const (
 	SCTE35Cue_End                        // SCTE35Cue_End indicates an in cue point
 )
 
+type TransmitLiveCueType uint
+
+const (
+	TransmitLiveCue_Start TransmitLiveCueType = iota // TransmitLiveCue_Start indicates an out cue point
+	TransmitLiveCue_End                              // TransmitLiveCue_End indicates an in cue point, apparently optional
+)
+
 /*
- This structure represents a single bitrate playlist aka media playlist.
- It related to both a simple media playlists and a sliding window media playlists.
- URI lines in the Playlist point to media segments.
+This structure represents a single bitrate playlist aka media playlist.
+It related to both a simple media playlists and a sliding window media playlists.
+URI lines in the Playlist point to media segments.
 
- Simple Media Playlist file sample:
+Simple Media Playlist file sample:
 
-   #EXTM3U
-   #EXT-X-VERSION:3
-   #EXT-X-TARGETDURATION:5220
-   #EXTINF:5219.2,
-   http://media.example.com/entire.ts
-   #EXT-X-ENDLIST
+	#EXTM3U
+	#EXT-X-VERSION:3
+	#EXT-X-TARGETDURATION:5220
+	#EXTINF:5219.2,
+	http://media.example.com/entire.ts
+	#EXT-X-ENDLIST
 
- Sample of Sliding Window Media Playlist, using HTTPS:
+Sample of Sliding Window Media Playlist, using HTTPS:
 
-   #EXTM3U
-   #EXT-X-VERSION:3
-   #EXT-X-TARGETDURATION:8
-   #EXT-X-MEDIA-SEQUENCE:2680
+	#EXTM3U
+	#EXT-X-VERSION:3
+	#EXT-X-TARGETDURATION:8
+	#EXT-X-MEDIA-SEQUENCE:2680
 
-   #EXTINF:7.975,
-   https://priv.example.com/fileSequence2680.ts
-   #EXTINF:7.941,
-   https://priv.example.com/fileSequence2681.ts
-   #EXTINF:7.975,
-   https://priv.example.com/fileSequence2682.ts
+	#EXTINF:7.975,
+	https://priv.example.com/fileSequence2680.ts
+	#EXTINF:7.941,
+	https://priv.example.com/fileSequence2681.ts
+	#EXTINF:7.975,
+	https://priv.example.com/fileSequence2682.ts
 */
 type MediaPlaylist struct {
 	TargetDuration   float64
@@ -125,19 +133,19 @@ type MediaPlaylist struct {
 }
 
 /*
- This structure represents a master playlist which combines media playlists for multiple bitrates.
- URI lines in the playlist identify media playlists.
- Sample of Master Playlist file:
+This structure represents a master playlist which combines media playlists for multiple bitrates.
+URI lines in the playlist identify media playlists.
+Sample of Master Playlist file:
 
-   #EXTM3U
-   #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1280000
-   http://example.com/low.m3u8
-   #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2560000
-   http://example.com/mid.m3u8
-   #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=7680000
-   http://example.com/hi.m3u8
-   #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=65000,CODECS="mp4a.40.5"
-   http://example.com/audio-only.m3u8
+	#EXTM3U
+	#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1280000
+	http://example.com/low.m3u8
+	#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2560000
+	http://example.com/mid.m3u8
+	#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=7680000
+	http://example.com/hi.m3u8
+	#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=65000,CODECS="mp4a.40.5"
+	http://example.com/audio-only.m3u8
 */
 type MasterPlaylist struct {
 	Variants      []*Variant
@@ -203,6 +211,14 @@ type MediaSegment struct {
 	ProgramDateTime time.Time // EXT-X-PROGRAM-DATE-TIME tag associates the first sample of a media segment with an absolute date and/or time
 	// WURL extensions
 	OverlayInfoList []WurlOverlayInfo
+	TransmitLive    *TransmitLive
+}
+
+type TransmitLive struct {
+	CueType           TransmitLiveCueType
+	Format            string
+	StartOffsetSecond float64
+	MaxDurationSecond float64
 }
 
 // WURL specific overlay information
@@ -219,6 +235,8 @@ type SCTE struct {
 	ID      string
 	Time    float64
 	Elapsed float64
+	//
+	SplicePointPayload string
 }
 
 // This structure represents information about stream encryption.
@@ -282,6 +300,7 @@ type decodingState struct {
 	tagStreamInf       bool
 	tagInf             bool
 	tagSCTE35          bool
+	tagTransmitLive    bool
 	tagRange           bool
 	tagDiscontinuity   bool
 	tagProgramDateTime bool
@@ -299,4 +318,5 @@ type decodingState struct {
 	xmap               *Map
 	scte               *SCTE
 	overlays           []WurlOverlayInfo
+	transmitLive       *TransmitLive
 }
