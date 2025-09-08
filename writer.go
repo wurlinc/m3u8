@@ -585,9 +585,9 @@ func (p *MediaPlaylist) Encode() *bytes.Buffer {
 				p.buf.WriteString("#EXT-X-TRANSMIT-CUE-OUT:AdFormat=")
 				p.buf.WriteString(seg.TransmitLive.Format)
 				p.buf.WriteString(",MaxDuration=")
-				p.buf.WriteString(strconv.FormatFloat(seg.TransmitLive.MaxDurationSecond, 'f', -1, 64))
+				p.buf.WriteString(fmt.Sprintf("%.2f", seg.TransmitLive.MaxDurationSecond))
 				p.buf.WriteString(",offset=")
-				p.buf.WriteString(strconv.FormatFloat(seg.TransmitLive.StartOffsetSecond, 'f', -1, 64))
+				p.buf.WriteString(fmt.Sprintf("%.2f", seg.TransmitLive.StartOffsetSecond))
 				p.buf.WriteRune('\n')
 			case TransmitLiveCue_End:
 				//DO nothing for now, this is optional
